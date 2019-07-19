@@ -23,7 +23,7 @@ def main():
     with open('/data/input/AppSession.json', 'U') as fd_json:
         app = json.load(fd_json)
 
-    # this should be a parameter
+    # TODO: this should be a parameter
     deblur = True
     samples = []
 
@@ -40,8 +40,8 @@ def main():
     for item in app['Properties']['Items']:
         if item['Name'] == 'Input.Projects':
             project_id = item['Items'][0]['Id']
-        if item['Name'] == 'Input.number-of-jobs':
-            jobs = item['Content']
+        # if item['Name'] == 'Input.number-of-jobs':
+        #     jobs = int(item['Content'])
 
         if item['Name'] == 'Input.sample-id':
             for sample in item['Items']:

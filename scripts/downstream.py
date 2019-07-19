@@ -4,27 +4,13 @@ import sys
 import json
 import logging
 
-from glob import glob
 from os.path import join
-
-from qcli import qcli_system_call
-from biom import load_table
-from skbio.util import create_dir
-
-
-def system_call(cmd, shell=True):
-    """Simple wrapper around qcli_system_call"""
-    info = qcli_system_call(cmd)
-
-    if info[2] != 0:
-        logging.error('STDOUT: '+info[0])
-        logging.error('STDERR: '+info[1])
-        return sys.exit(info[2])
-
+from os import makedirs
 
 def main():
 
     spreadsheet_key = None
+    jobs = 11
 
     with open('/data/input/AppSession.json', 'U') as fd_json:
         app = json.load(fd_json)
@@ -33,60 +19,33 @@ def main():
     for item in app['Properties']['Items']:
         if item['Name'] == 'Input.Projects':
             project_id = item['Items'][0]['Id']
-        if item['Name'] == 'Input.spreadsheet-key':
-            spreadsheet_key = item['Content']
-        if item['Name'] == 'Input.app-result-id':
-            results_id = item['Content']['Id']
         if item['Name'] == 'Input.rarefaction-depth':
             depth = item['Content']
-        if item['Name'] == 'Input.number-of-jobs':
-            jobs = item['Content']
-
+        if item['Name'] == 'Input.metadata-name':
+            metadata_name = item['Content']
 
     # from BaseSpace's documentation
     input_dir = '/data/input/appresults/'
+
     base = join('/data/output/appresults/', project_id)
+    output_dir = join(base, 'upstream-results')
 
-    create_dir(base)
+    makedirs(output_dir, exist_ok=True)
 
-    # OTU picking
-    input_dir = join(input_dir, results_id)
+    # TODO: include the path to metadata.tsv
+    metadata = join(base, metadata_name)
 
-    mapping_fp = join(base, 'mapping-file.txt')
-    cmd = ("load_remote_mapping_file.py "
-           "-k {spreadsheet_key} -o {mapping_fp}")
-    params = {'spreadsheet_key': spreadsheet_key, 'mapping_fp': mapping_fp}
+    # qiime diversity core-metrics-phylogenetic
 
-    system_call(cmd.format(**params))
+    # qiime diversity alpha-rarefaction
 
-    biom_fp = join(input_dir, 'otu_table.biom')
-    tree_fp = glob(join(input_dir, '*.tree'))[0]
-    output_dir = join(base, 'corediv-out')
-
-    bt = load_table(biom_fp)
-
-    if bt.is_empty():
-        logging.error('BIOM table is empty, cannot perform diversity '
-                      'analyses.')
-        return 11
-
-    params_fp = join(base, 'alpha-params.txt')
-    with open(params_fp, 'w') as alpha_fp:
-        alpha_fp.write('alpha_diversity:metrics shannon,PD_whole_tree,'
-                       'chao1,observed_species')
-
-    cmd = ("core_diversity_analyses.py "
-           "-i {biom_fp} -o {output_dir} -m {mapping_fp} -e {depth} "
-           "-t {tree_fp} -p {params_fp}")
-    params = {'biom_fp': biom_fp, 'output_dir': output_dir,
-              'mapping_fp': mapping_fp, 'depth': depth, 'jobs': jobs,
-              'tree_fp': tree_fp, 'params_fp': params_fp}
+    # q2-taxa: interactive taxa barplot
+    # run summarize_taxa
+    #   also requires metdata
 
     # see https://github.com/biocore/qiime/issues/2034
     if jobs != '1':
         cmd += ' -a -O {jobs}'
-
-    system_call(cmd.format(**params))
 
     for log_file in glob(join(output_dir, 'log_*')):
         with open(log_file, 'U') as fd_log:
