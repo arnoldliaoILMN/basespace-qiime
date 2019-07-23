@@ -2,6 +2,7 @@
 
 import sys
 import json
+import glob
 import numpy as np
 
 import qiime2 as q2
@@ -45,13 +46,24 @@ def main():
 
         if item['Name'] == 'Input.sample-id':
             for sample in item['Items']:
-                s = Sample(sample['Id'], sample['Name'])
+                s = Sample(sample['Id'], sample['Name'], None, None)
                 s.length = sample['Read1']
 
                 # path to the samples
                 path = '/data/input/samples/' + s.id
-                # TODO: how does this path look like?
-                s.path = join(path, 'xxxx.R1.fastq.gz')
+
+                # this assumes the per-sample directory structure is
+                # small/simple otherwise this might be resource-intensive
+                paths = glob.iglob(os.path.join(path, '**/*.fastq.gz'),
+                                   recursive=True)
+                for path in paths:
+                    if '_R1_' in path or '.R1.' in path:
+                        if s.path is None:
+                            s.path = path
+                        else:
+                            raise ValueError('More than one forward reads have'
+                                             ' been found for sample %s' %
+                                             sample)
 
                 samples.append(s)
 
