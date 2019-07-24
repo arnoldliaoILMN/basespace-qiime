@@ -98,7 +98,7 @@ def main():
     summary.save(join(output_dir, 'sequences.qzv'))
 
     # quality controlling the sequences, the defaults should be good enough
-    filtered, _ = q2_quality_filter(demux)
+    filtered, _ = q2_quality_filter.q_score(demux)
     filtered.save(join(output_dir, 'quality-controlled.sequences.qza'))
 
     # https://developer.basespace.illumina.com/docs/content/documentation/
