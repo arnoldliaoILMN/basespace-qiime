@@ -10,7 +10,7 @@ import qiime2.plugins.demux.actions as q2_demux
 import qiime2.plugins.feature_table.actions as q2_feature_table
 import qiime2.plugins.quality_filter.actions as q2_quality_filter
 import qiime2.plugins.deblur.actions as q2_deblur
-import qiime2.plugins.dada.actions as q2_dada2
+import qiime2.plugins.dada2.actions as q2_dada2
 import qiime2.plugins.phylogeny.actions as q2_phylogeny
 import qiime2.plugins.feature_classifier.actions as q2_feature_classifier
 
