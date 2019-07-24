@@ -32,9 +32,6 @@ def main():
     # is the case then lets always split over 11 jobs
     jobs = 11
 
-    # handy for storing sample information
-    Sample = namedtuple('Sample', 'id name path length')
-
     # TODO: Making a parser of this whole thing would be better (could also
     # include some unit testing). Also encapsulating everything in one object
     # would be better
@@ -46,20 +43,22 @@ def main():
 
         if item['Name'] == 'Input.sample-id':
             for sample in item['Items']:
-                s = Sample(sample['Id'], sample['Name'], None, None)
-                s.length = sample['Read1']
+                s = {'id': None, 'name': None, 'path': None, 'length': None}
+
+                s['id'] = sample['Id']
+                s['name'] = sample['Name']
+                s['length'] = float(sample['Read1'])
 
                 # path to the samples
-                path = '/data/input/samples/' + s.id
+                path = join('/data/input/samples/', s['id'])
 
                 # this assumes the per-sample directory structure is
                 # small/simple otherwise this might be resource-intensive
-                paths = glob.iglob(os.path.join(path, '**/*.fastq.gz'),
-                                   recursive=True)
+                paths = glob.iglob(join(path, '**/*.fastq.gz'), recursive=True)
                 for path in paths:
                     if '_R1_' in path or '.R1.' in path:
-                        if s.path is None:
-                            s.path = path
+                        if s['path'] is None:
+                            s['path'] = path
                         else:
                             raise ValueError('More than one forward reads have'
                                              ' been found for sample %s' %
@@ -88,11 +87,11 @@ def main():
     # import the sequence data based on the manifest-provided information
     demux = q2.Artifact.import_data('SampleData[SequencesWithQuality]',
                                     manifest_fp,
-                                    'SingleEndFastqManifestPhred33')
+                                    'SingleEndFastqManifestPhred33V2')
 
     # based on a conversation with Arnold we determined that a resonable
     # default for sequence trimming would be 70% of the sequence lengths
-    trim_length = floor(np.array([s.length for s in samples]).mean() * 0.70)
+    trim_length = floor(np.array([s['length'] for s in samples]).mean() * 0.70)
 
     # create a summary visualization of the quality scores
     summary, = q2_demux.summarize(demux)
