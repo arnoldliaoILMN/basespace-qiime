@@ -123,7 +123,7 @@ def main():
 
     # create a summary of the feature table
     summary, = q2_feature_table.summarize(table=feature_table)
-    summary.save('feature-table-summary.qzv')
+    summary.save(join(output_dir, 'feature-table-summary.qzv'))
 
     # build a *quick* phylogenetic tree using MAFFT. We should build this tree
     # using SEPP, however that would take more resources than what this AMI has
