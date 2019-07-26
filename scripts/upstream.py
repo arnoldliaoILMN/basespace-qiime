@@ -3,6 +3,7 @@
 import sys
 import json
 import glob
+import os
 import numpy as np
 
 import qiime2 as q2
@@ -21,7 +22,10 @@ from collections import namedtuple
 
 
 def main():
-    with open('/data/input/AppSession.json', 'U') as fd_json:
+    #  we really should make this dynamic.  It is the #1 request I get from customers (aliao)
+    os.system("wget -P /data/scratch https://data.qiime2.org/2019.4/common/gg-13-8-99-515-806-nb-classifier.qza")
+
+    with open('/data/aliao/qiime/AppSession.qiime2.json', 'U') as fd_json:
         app = json.load(fd_json)
 
     # TODO: this should be a parameter
@@ -54,13 +58,14 @@ def main():
 
                 # this assumes the per-sample directory structure is
                 # small/simple otherwise this might be resource-intensive
-                paths = glob.iglob(join(path, '**/*.fastq.gz'), recursive=True)
-                for path in paths:
-                    if '_R1_' in path or '.R1.' in path:
-                        if s['path'] is None:
-                            s['path'] = path
-                        else:
-                            raise ValueError('More than one forward reads have'
+                
+                for root, dirs, files in os.walk(path):
+                    for file in files:
+                        if '_R1_' in file and file.endswith(".fastq.gz"):
+                            if s['path'] is None:
+                                s['path'] = os.path.join(root,file)
+                            else:
+                                raise ValueError('More than one forward reads have'
                                              ' been found for sample %s' %
                                              sample)
 
@@ -80,9 +85,9 @@ def main():
     # therefore we don't save this in the output folder
     manifest_fp = join(workspace, 'manifest.tsv')
     with open(manifest_fp, 'w') as f:
-        f.write('sample-id\tabsolute-filepath\n')
+        f.write('sample-id\tabsolute-filepath\tdirection\n')
         for sample in samples:
-            f.write('{}\t{}\n'.format(sample.id, sample.path))
+            f.write('{}\t{}\tforward\n'.format(sample['id'], sample['path']))
 
     # import the sequence data based on the manifest-provided information
     demux = q2.Artifact.import_data('SampleData[SequencesWithQuality]',
@@ -123,7 +128,7 @@ def main():
 
     # create a summary of the feature table
     summary, = q2_feature_table.summarize(table=feature_table)
-    summary.save(join(output_dir, 'feature-table-summary.qzv'))
+    summary.save('feature-table-summary.qzv')
 
     # build a *quick* phylogenetic tree using MAFFT. We should build this tree
     # using SEPP, however that would take more resources than what this AMI has
